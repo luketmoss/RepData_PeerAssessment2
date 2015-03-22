@@ -1,9 +1,4 @@
----
-title: "Weather Events in the US and Their Economic and Health Impacts"
-output: 
-  html_document:
-    keep_md: true
----
+# Weather Events in the US and Their Economic and Health Impacts
 ##Synopsis
 Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
 
@@ -17,7 +12,8 @@ The data used in this analysis is available below:
 ##Data Processing
 ###General Data Processing
 First, download the data (if it isn't already available in the current directory):
-```{r}
+
+```r
 data_file_name <- "repdata-data-StormData.csv.bz2"
 file_url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 
@@ -29,7 +25,8 @@ if(!file.exists(data_file_name)){
 ```
 
 Install and load the appropriate libraries:
-```{r warning=FALSE,message=FALSE}
+
+```r
 #plyr
 if(!is.element("plyr", installed.packages()[,1])){
     install.packages("plyr", repos="http://cran.rstudio.com/")
@@ -56,12 +53,14 @@ library(gridExtra)
 ```
 
 Load the data into a data frame:
-```{r cache=TRUE}
+
+```r
 storm_data <- read.csv(bzfile("repdata-data-StormData.csv.bz2"))
 ```
 
 Normalize the event types by eliminating special characters, spaces, and case discrepencies:
-```{r}
+
+```r
 storm_data2 <- storm_data
 event_types <- tolower(storm_data2$EVTYPE)
 event_types <- gsub("[[:blank:][:punct:]+]", " ", event_types)
@@ -72,7 +71,8 @@ storm_data2$EVTYPE <- event_types
 ###Process data for health impact of weather events 
 For this question, use the events that caused the most deaths AND injuries seperately.  This
 data will be reported on in the 'Results' section.
-```{r}
+
+```r
 #fatal events
 fatal_events <- melt(sort(tapply(storm_data2$FATALITIES,storm_data2$EVTYPE,sum),
                      decreasing=TRUE))
@@ -87,7 +87,8 @@ In the data, property damage is represented with two fields: `PROPDMG` and `PROP
 Crop damage is represented in the data with the following two fields: `CROPDMG` and `CROPDMGEXP`.  
 
 First, normalize the cost by using the `PROPDMGEXP` and `CROPDMGEXP` fields:
-```{r}
+
+```r
 #Property Damage
 storm_data2$PROPDMGEXP <- tolower(storm_data2$PROPDMGEXP)
 storm_data2$PROPDMG[storm_data2$PROPDMGEXP == ""] <- storm_data2$PROPDMG[storm_data2$PROPDMGEXP == ""] * 1
@@ -106,7 +107,8 @@ storm_data2$CROPDMG[storm_data2$CROPDMGEXP == "b"] <- storm_data2$CROPDMG[storm_
 ```
 
 Now create sorted data frames for crop damage and property damage seperately.  This data will be used in the results section below:
-```{r}
+
+```r
 #crop damage
 crop_events <- melt(sort(tapply(storm_data2$CROPDMG,storm_data2$EVTYPE,sum),
                      decreasing=TRUE))
@@ -118,7 +120,8 @@ property_events <- melt(sort(tapply(storm_data2$PROPDMG,storm_data2$EVTYPE,sum),
 
 ##Results
 ###Which types of events are most harmful with respect to population health?
-```{r}
+
+```r
 #Plot the causes of fatalities by event type
 p1 <- ggplot(data=head(fatal_events,10), aes(x=indices, y=value, fill=value)) +
     geom_bar(stat="identity") +
@@ -140,11 +143,14 @@ p2 <- ggplot(data=head(injury_events,10), aes(x=indices, y=value, fill=value)) +
 grid.arrange(p1, p2)
 ```
 
+![](PA2_files/figure-html/unnamed-chunk-8-1.png) 
+
 Tornadoes are the leading cause of fatalities and injuries.  
 
 ###Which types of events have the greatest economic consequences?
 Plot the crop damage by event type:
-```{r}
+
+```r
 #Plot the crop damage by event type
 p3 <- ggplot(data=head(crop_events,10), aes(x=indices, y=value, fill=value)) +
     geom_bar(stat="identity") +
@@ -165,5 +171,7 @@ p4 <- ggplot(data=head(property_events,10), aes(x=indices, y=value, fill=value))
 
 grid.arrange(p3, p4)
 ```
+
+![](PA2_files/figure-html/unnamed-chunk-9-1.png) 
 
 Drought is the leading cause of crop damage and floods are the leading cause of property damage.
