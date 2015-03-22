@@ -3,22 +3,34 @@ title: "Weather Events in the US and Their Economic and Health Impacts"
 output: html_document
 keep_md: true
 ---
+##Synopsis
 Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
 
-This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
-
-##Synopsis
+The analysis below will answer the following questions:
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+2. Across the United States, which types of events have the greatest economic consequences?
 
 ##Data Processing
-First, download the data:
+###General Data Processing
+First, download the data (if it isn't already available in the current directory):
 ```{r}
 data_file_name <- "repdata-data-StormData.csv.bz2"
 file_url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 
 if(!file.exists(data_file_name)){
     print("Downloading Data")
+    setInternet2(use = TRUE)
     download.file(file_url,data_file_name, mode = "wb")
 }
+```
+
+Install and load the appropriate libraries:
+```{r}
+if(!is.element("plyr", installed.packages()[,1])){
+    print("Installing plyr package")
+    install.packages("plyr")
+}
+library(plyr)
 ```
 
 Load the data into a data frame:
@@ -26,4 +38,59 @@ Load the data into a data frame:
 storm_data <- read.csv(bzfile("repdata-data-StormData.csv.bz2"))
 ```
 
+Normalize the event types by eliminating special characters, spaces, and case discrepencies:
+```{r}
+storm_data2 <- storm_data
+event_types <- tolower(storm_data2$EVTYPE)
+event_types <- gsub("[[:blank:][:punct:]+]", " ", event_types)
+event_types <- gsub("^ *|(?<= ) | *$", "", event_types, perl=T)
+storm_data2$EVTYPE <- event_types
+```
+
+###Process data for health impact of weather events 
+For this question, use the events that caused the most deaths AND injuries.  This
+data will be reported on in the 'Results' section
+```{r}
+#fatal events
+fatal_events <- sort(tapply(storm_data2$FATALITIES,storm_data2$EVTYPE,sum),
+                     decreasing=TRUE)
+
+#injury events
+injury_events <- sort(tapply(storm_data2$INJURIES,storm_data2$EVTYPE,sum),
+                     decreasing=TRUE)
+```
+
+###Process data for economic impact of weather events
+In the data, property damage is represented with two fields: `PROPDMG` and `PROPDMGEXP`.
+Crop damage is represented in the data with the following two fields: `CROPDMG` and `CROPDMGEXP`.  
+
+First, normalize the cost by using the `PROPDMGEXP` and `CROPDMGEXP` fields:
+```{r}
+#Property Damage
+storm_data2$PROPDMGEXP <- tolower(storm_data2$PROPDMGEXP)
+storm_data2$PROPDMG[storm_data2$PROPDMGEXP == ""] <- storm_data2$PROPDMG[storm_data2$PROPDMGEXP == ""] * 1
+storm_data2$PROPDMG[storm_data2$PROPDMGEXP == "h"] <- storm_data2$PROPDMG[storm_data2$PROPDMGEXP == "h"] * 100
+storm_data2$PROPDMG[storm_data2$PROPDMGEXP == "k"] <- storm_data2$PROPDMG[storm_data2$PROPDMGEXP == "k"] * 1000
+storm_data2$PROPDMG[storm_data2$PROPDMGEXP == "m"] <- storm_data2$PROPDMG[storm_data2$PROPDMGEXP == "m"] * 1e+06
+storm_data2$PROPDMG[storm_data2$PROPDMGEXP == "b"] <- storm_data2$PROPDMG[storm_data2$PROPDMGEXP == "b"] * 1e+09
+
+#Crop Damage
+storm_data2$CROPDMGEXP <- tolower(storm_data2$CROPDMGEXP)
+storm_data2$CROPDMG[storm_data2$CROPDMGEXP == ""] <- storm_data2$CROPDMG[storm_data2$CROPDMGEXP == ""] * 1
+storm_data2$CROPDMG[storm_data2$CROPDMGEXP == "h"] <- storm_data2$CROPDMG[storm_data2$CROPDMGEXP == "h"] * 100
+storm_data2$CROPDMG[storm_data2$CROPDMGEXP == "k"] <- storm_data2$CROPDMG[storm_data2$CROPDMGEXP == "k"] * 1000
+storm_data2$CROPDMG[storm_data2$CROPDMGEXP == "m"] <- storm_data2$CROPDMG[storm_data2$CROPDMGEXP == "m"] * 1e+06
+storm_data2$CROPDMG[storm_data2$CROPDMGEXP == "b"] <- storm_data2$CROPDMG[storm_data2$CROPDMGEXP == "b"] * 1e+09
+```
+
+Add up crop and property damage and sort:
+```{r}
+storm_data2$TOTAL_ECO_DAMAGE <- storm_data2$CROPDMG + storm_data2$PROPDMG
+economic_damage_events<-sort(tapply(storm_data2$TOTAL_ECO_DAMAGE,storm_data2$EVTYPE,sum),decreasing=TRUE)
+```
+
 ##Results
+###Which types of events are most harmful with respect to population health?
+
+
+###Which types of events have the greatest economic consequences?
